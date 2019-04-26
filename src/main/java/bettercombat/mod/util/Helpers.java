@@ -8,6 +8,7 @@ package bettercombat.mod.util;
 
 import bettercombat.mod.handler.EventHandlers;
 import bettercombat.mod.capability.CapabilityOffhandCooldown;
+import com.flowpowered.math.vector.Vector3d;
 import com.google.common.collect.Multimap;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -37,9 +38,18 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.fml.common.Loader;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.world.World;
+import org.spongepowered.common.SpongeImplHooks;
+import org.spongepowered.common.event.SpongeCommonEventFactory;
+import org.spongepowered.common.interfaces.entity.player.IMixinEntityPlayerMP;
+import org.spongepowered.common.util.VecHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -114,6 +124,23 @@ public final class Helpers
     }
 
     public static void attackTargetEntityItem(EntityPlayer player, Entity targetEntity, boolean offhand) {
+        if(Loader.isModLoaded("spongeforge")) {
+            Sponge.getCauseStackManager().pushCause(player);
+            EnumHand hand = offhand ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND;
+            ItemStack itemstack = player.getHeldItem(hand);
+            final RayTraceResult result = SpongeImplHooks.rayTraceEyes(player, SpongeImplHooks.getBlockReachDistance((EntityPlayerMP) player));
+            Vector3d hitVec = result == null ? null : VecHelper.toVector3d(result.hitVec);
+            if (SpongeCommonEventFactory.callInteractItemEventPrimary(player, itemstack, hand, hitVec, targetEntity).isCancelled()) {
+                return;
+            }
+            if (targetEntity instanceof Player && !((World) player.world).getProperties().isPVPEnabled()) {
+                return; // PVP is disabled, ignore
+            }
+            if (SpongeCommonEventFactory.callInteractEntityEventPrimary((EntityPlayerMP) player, targetEntity, hand, hitVec).isCancelled()) {
+                return;
+            }
+        }
+
         if( !ForgeHooks.onPlayerAttackTarget(player, targetEntity) ) {
             return;
         }
@@ -344,6 +371,10 @@ public final class Helpers
                     }
                 }
             }
+        }
+
+        if(Loader.isModLoaded("spongeforge")) {
+            Sponge.getCauseStackManager().popCause();
         }
     }
 

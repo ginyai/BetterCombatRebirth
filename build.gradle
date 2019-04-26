@@ -46,6 +46,10 @@ repositories {
         name = "CurseForge"
         url = "https://minecraft.curseforge.com/api/maven/"
     }
+    maven {
+        name = "sponge"
+        url = "https://repo.spongepowered.org/maven"
+    }
 }
 
 dependencies {
@@ -54,6 +58,7 @@ dependencies {
     deobfCompile("slimeknights:TConstruct:1.12.2-2.9.1.70") {
         transitive = false
     }
+    compileOnly "org.spongepowered:spongeforge:1.12.2-2768-7.1.5"
 }
 
 processResources {
